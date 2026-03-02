@@ -1,0 +1,56 @@
+# Loading in required libraries
+import pandas as pd
+import seaborn as sns
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Import df
+nobel = pd.read_csv("data/nobel.csv")
+# print(nobel.head())
+
+# Most commonly awarded gender?
+top_gender = nobel.value_counts("sex").index[0]
+print("The most commonly awarded gender is:", top_gender)
+
+# Most commonly awarded birth country?
+top_country = nobel.value_counts("birth_country").index[0]
+print("The most commonly awarded country is:", top_country)
+
+# Which decade had highest ratio of US-born Novel Prize winners to total winners in all categories?
+nobel["decade"] = (np.floor(nobel["year"] / 10) * 10).astype("int")
+nobel["usa_born_winner"] =  nobel["birth_country"] == "United States of America"
+prop_us_winners = nobel.groupby("decade", as_index=False)["usa_born_winner"].mean()
+max_decade_usa = prop_us_winners[prop_us_winners["usa_born_winner"] == prop_us_winners["usa_born_winner"].max()]["decade"].values[0]
+print("The decade which has the highest ratio of US-born Nobel Prize Winners to total winners in all categories was:", max_decade_usa)
+
+# Which decade and Nobel Prize category combination had the highest proportion of female laureates?
+nobel["female_winner"] = nobel["sex"] == "Female"
+nobel_female = nobel.groupby(["decade", "category"], as_index=False)["female_winner"].mean()
+nobel_female_max = nobel_female[nobel_female["female_winner"] == nobel_female["female_winner"].max()][["decade", "category"]]
+
+# As a dictionary...
+max_female_dict = {nobel_female_max["decade"].values[0] : nobel_female_max["category"].values[0]}
+
+# First woman to receive a Nobel Prize, and in what category?
+nobel_women = nobel[nobel["female_winner"]]
+min_row = nobel_women[nobel_women["year"] == nobel_women["year"].min()]
+first_woman_name = min_row["full_name"].values[0]
+first_woman_category = min_row["category"].values[0]
+print(f"The first woman to win a Nobel Prize was {first_woman_name} in the category {first_woman_category}")
+
+# Which individuals or organizations have won more than one Nobel Prize throughout the years?
+win_counts = nobel["full_name"].value_counts()
+repeats = win_counts[win_counts >=2].index
+repeat_list = list(repeats)
+
+# Plot relational graphs
+ax1 = sns.relplot(x="decade", y="usa_born_winner", data=prop_us_winners, kind="line")
+ax1.set(xlabel="Decade", ylabel="Proportion of Winners from USA")
+ax1.figure.suptitle("Proportion of Nobel Prize winners from USA over time", y=1.05)
+sns.set_palette("RdBu")
+plt.show()
+
+ax2 = sns.relplot(x="decade", y="female_winner", data=nobel_female, kind="line", hue="category")
+ax2.set(xlabel="Decade", ylabel="Proportion of female winners over time")
+ax2.figure.suptitle("Proportion of female Nobel Prize winners and their categories", y=1.05)
+plt.show()
